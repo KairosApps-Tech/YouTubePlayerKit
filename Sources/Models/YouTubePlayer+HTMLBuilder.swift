@@ -175,6 +175,8 @@ public extension YouTubePlayer.HTMLBuilder {
                         width: 100%;
                         height: 100%;
                     }
+                    
+                    /* CSS pour forcer le rendu software et permettre la capture */
                     .player-container iframe,
                     .player-container object,
                     .player-container embed {
@@ -183,7 +185,25 @@ public extension YouTubePlayer.HTMLBuilder {
                         left: 0;
                         width: 100% !important;
                         height: 100% !important;
+                        /* Forcer le rendu software pour la capture */
+                        -webkit-transform: translate3d(0, 0, 0) !important;
+                        transform: translate3d(0, 0, 0) !important;
+                        will-change: auto !important;
+                        backface-visibility: visible !important;
+                        -webkit-backface-visibility: visible !important;
                     }
+                    
+                    /* Styles pour tous les éléments vidéo */
+                    video {
+                        -webkit-transform: translate3d(0, 0, 0) !important;
+                        transform: translate3d(0, 0, 0) !important;
+                        will-change: auto !important;
+                        backface-visibility: visible !important;
+                        -webkit-backface-visibility: visible !important;
+                        opacity: 1 !important;
+                        visibility: visible !important;
+                    }
+                    
                     ::-webkit-scrollbar {
                         display: none !important;
                     }
@@ -193,13 +213,64 @@ public extension YouTubePlayer.HTMLBuilder {
                 <div class="player-container">
                     <div id="\(htmlBuilder.youTubePlayerJavaScriptVariableName)"></div>
                 </div>
-            
+
                 <script src="\(htmlBuilder.youTubePlayerIframeAPISourceURL)"
                     onerror="window.location.href='\(htmlBuilder.youTubePlayerEventCallbackURLScheme)://\(YouTubePlayer.Event.Name.iFrameApiFailedToLoad.rawValue)'">
                 </script>
-            
+
                 <script>
                     var \(htmlBuilder.youTubePlayerJavaScriptVariableName);
+
+                    // Fonction pour optimiser les vidéos pour la capture
+                    function optimizeVideoForCapture() {
+                        const videos = document.querySelectorAll('video');
+                        videos.forEach(video => {
+                            video.style.transform = 'translate3d(0, 0, 0)';
+                            video.style.willChange = 'auto';
+                            video.style.backfaceVisibility = 'visible';
+                            video.style.webkitBackfaceVisibility = 'visible';
+                            video.style.opacity = '1';
+                            video.style.visibility = 'visible';
+                        });
+                        
+                        const iframes = document.querySelectorAll('iframe');
+                        iframes.forEach(iframe => {
+                            iframe.style.transform = 'translate3d(0, 0, 0)';
+                            iframe.style.willChange = 'auto';
+                            iframe.style.backfaceVisibility = 'visible';
+                            iframe.style.webkitBackfaceVisibility = 'visible';
+                        });
+                    }
+
+                    // Observer pour les nouveaux éléments vidéo ajoutés dynamiquement
+                    const observer = new MutationObserver(function(mutations) {
+                        mutations.forEach(function(mutation) {
+                            mutation.addedNodes.forEach(function(node) {
+                                if (node.nodeType === 1) { // ELEMENT_NODE
+                                    const videos = node.querySelectorAll ? node.querySelectorAll('video') : [];
+                                    const iframes = node.querySelectorAll ? node.querySelectorAll('iframe') : [];
+                                    
+                                    [...videos, ...iframes].forEach(element => {
+                                        element.style.transform = 'translate3d(0, 0, 0)';
+                                        element.style.willChange = 'auto';
+                                        element.style.backfaceVisibility = 'visible';
+                                        element.style.webkitBackfaceVisibility = 'visible';
+                                        if (element.tagName === 'VIDEO') {
+                                            element.style.opacity = '1';
+                                            element.style.visibility = 'visible';
+                                        }
+                                    });
+                                    
+                                    if (node.tagName === 'VIDEO' || node.tagName === 'IFRAME') {
+                                        node.style.transform = 'translate3d(0, 0, 0)';
+                                        node.style.willChange = 'auto';
+                                        node.style.backfaceVisibility = 'visible';
+                                        node.style.webkitBackfaceVisibility = 'visible';
+                                    }
+                                }
+                            });
+                        });
+                    });
 
                     function onYouTubeIframeAPIReady() {
                         \(htmlBuilder.youTubePlayerJavaScriptVariableName) = new YT.Player(
@@ -210,9 +281,20 @@ public extension YouTubePlayer.HTMLBuilder {
                             window.innerWidth,
                             window.innerHeight
                         );
+                        
+                        // Optimiser pour la capture après la création du player
+                        setTimeout(() => {
+                            optimizeVideoForCapture();
+                            // Démarrer l'observation des mutations
+                            observer.observe(document.body, {
+                                childList: true,
+                                subtree: true
+                            });
+                        }, 1000);
+                        
                         sendYouTubePlayerEvent('\(YouTubePlayer.Event.Name.iFrameApiReady.rawValue)');
                     }
-            
+
                     function sendYouTubePlayerEvent(eventName, event) {
                         const url = new URL(`\(htmlBuilder.youTubePlayerEventCallbackURLScheme)://${eventName}`);
                         if (event && event.data !== null) {
@@ -223,6 +305,50 @@ public extension YouTubePlayer.HTMLBuilder {
                         }
                         window.location.href = url.toString();
                     }
+
+                    // Fonction globale pour préparer la capture (appelée depuis Swift)
+                    window.prepareForCapture = function() {
+                        // Forcer le rendu des vidéos (synchrone)
+                        const videos = document.querySelectorAll('video');
+                        videos.forEach(video => {
+                            const display = video.style.display;
+                            video.style.display = 'none';
+                            video.offsetHeight; // Force reflow
+                            video.style.display = display || '';
+                            
+                            // S'assurer que la vidéo est visible
+                            video.style.opacity = '1';
+                            video.style.visibility = 'visible';
+                        });
+                        
+                        // Retourner le nombre de vidéos directement (pas de Promise)
+                        return videos.length;
+                    };
+                    
+                    // Fonction avec callback pour version asynchrone si nécessaire
+                    window.prepareForCaptureAsync = function(callback) {
+                        const videos = document.querySelectorAll('video');
+                        videos.forEach(video => {
+                            const display = video.style.display;
+                            video.style.display = 'none';
+                            video.offsetHeight; // Force reflow
+                            video.style.display = display || '';
+                            
+                            video.style.opacity = '1';
+                            video.style.visibility = 'visible';
+                        });
+                        
+                        // Attendre que le rendu soit stabilisé
+                        setTimeout(() => {
+                            if (callback) callback(videos.length);
+                        }, 200);
+                    };
+
+                    // Appliquer les optimisations dès que possible
+                    document.addEventListener('DOMContentLoaded', optimizeVideoForCapture);
+                    
+                    // Optimiser périodiquement (au cas où de nouveaux éléments seraient ajoutés)
+                    setInterval(optimizeVideoForCapture, 2000);
 
                     \(
                         YouTubePlayer

@@ -10,7 +10,7 @@ extension YouTubePlayerWebView: WKNavigationDelegate {
     ///   - webView: The web view.
     ///   - navigation: The navigation.
     ///   - error: The error.
-    func webView(
+    public func webView(
         _ webView: WKWebView,
         didFailProvisionalNavigation navigation: WKNavigation!,
         withError error: Error
@@ -28,7 +28,7 @@ extension YouTubePlayerWebView: WKNavigationDelegate {
     ///   - webView: The web view.
     ///   - navigation: The navigation.
     ///   - error: The error.
-    func webView(
+    public func webView(
         _ webView: WKWebView,
         didFail navigation: WKNavigation!,
         withError error: Error
@@ -45,7 +45,7 @@ extension YouTubePlayerWebView: WKNavigationDelegate {
     /// - Parameters:
     ///   - webView: The WKWebView
     ///   - navigationAction: The WKNavigationAction
-    func webView(
+    public func webView(
         _ webView: WKWebView,
         decidePolicyFor navigationAction: WKNavigationAction
     ) async -> WKNavigationActionPolicy {
@@ -132,7 +132,7 @@ extension YouTubePlayerWebView: WKNavigationDelegate {
     
     /// Invoked when the web view's web content process is terminated.
     /// - Parameter webView: The web view whose underlying web content process was terminated.
-    func webViewWebContentProcessDidTerminate(
+    public func webViewWebContentProcessDidTerminate(
         _ webView: WKWebView
     ) {
         // Send web content process did terminate event
